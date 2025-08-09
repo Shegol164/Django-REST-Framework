@@ -9,4 +9,5 @@ urlpatterns = [
     path('', home_view, name='home'),
     path('admin/', admin.site.urls),
     path('api/', include('materials.urls', namespace='materials')),
+    path('api/users/', include('users.urls')),
 ]
