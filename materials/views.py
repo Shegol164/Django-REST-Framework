@@ -9,9 +9,9 @@ class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
 
     def get_permissions(self):
-        if self.action in ['create', 'destroy']:
+        if self.action == 'create':
             permission_classes = [permissions.IsAuthenticated, ~IsModerator]
-        elif self.action in ['update', 'partial_update']:
+        elif self.action in ['update', 'partial_update', 'destroy']:
             permission_classes = [permissions.IsAuthenticated, IsOwnerOrModerator]
         else:
             permission_classes = [permissions.IsAuthenticated]
@@ -31,9 +31,9 @@ class LessonViewSet(viewsets.ModelViewSet):
     serializer_class = LessonSerializer
 
     def get_permissions(self):
-        if self.action in ['create', 'destroy']:
+        if self.action == 'create':
             permission_classes = [permissions.IsAuthenticated, ~IsModerator]
-        elif self.action in ['update', 'partial_update']:
+        elif self.action in ['update', 'partial_update', 'destroy']:
             permission_classes = [permissions.IsAuthenticated, IsOwnerOrModerator]
         else:
             permission_classes = [permissions.IsAuthenticated]

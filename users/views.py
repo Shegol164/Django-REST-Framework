@@ -1,11 +1,10 @@
 from rest_framework import viewsets, filters
 from users.models import Payment
-from users.permissions import IsOwnerOrModerator
+from users.permissions import IsOwnerOrModerator, IsProfileOwner
 from users.serializers import PaymentSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions
 from rest_framework_simplejwt.views import TokenObtainPairView
-from users.models import User
 from users.serializers import UserSerializer, CustomTokenObtainPairSerializer
 
 class PaymentViewSet(viewsets.ModelViewSet):
@@ -27,7 +26,7 @@ class UserCreateAPIView(generics.CreateAPIView):
 
 class UserRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProfileOwner]
 
     def get_object(self):
         return self.request.user
