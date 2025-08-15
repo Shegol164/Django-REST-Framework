@@ -36,6 +36,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 class LessonViewSet(viewsets.ModelViewSet):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
+    pagination_class = LessonPaginator
 
     def get_permissions(self):
         if self.action == 'create':
