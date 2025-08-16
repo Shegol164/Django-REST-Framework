@@ -8,9 +8,11 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import Subscription
 from .paginators import CoursePaginator, LessonPaginator
+from drf_yasg.utils import swagger_auto_schema
 
 
 class CourseViewSet(viewsets.ModelViewSet):
+    queryset = Course.objects.all()
     pagination_class = CoursePaginator
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
@@ -101,3 +103,11 @@ class SubscriptionView(generics.CreateAPIView):
             message = 'Подписка добавлена'
 
         return Response({"message": message}, status=status.HTTP_200_OK)
+
+class CourseViewSet(viewsets.ModelViewSet):
+   @swagger_auto_schema(
+      operation_description="Получить список курсов с пагинацией",
+      responses={200: CourseSerializer(many=True)}
+   )
+   def list(self, request):
+      return super().list(request)
