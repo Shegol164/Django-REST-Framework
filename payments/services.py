@@ -13,10 +13,12 @@ def create_stripe_price(amount, product_id):
       currency="rub",
    )
 
-def create_stripe_session(price_id):
+
+def create_stripe_session(price_id, request):
+   domain = request.build_absolute_uri('/')[:-1]  # Получаем базовый URL проекта
    return stripe.checkout.Session.create(
       line_items=[{"price": price_id, "quantity": 1}],
       mode="payment",
-      success_url="https://your-site.com/success",
-      cancel_url="https://your-site.com/cancel",
+      success_url=f"{domain}/payments/success/",  # URL для успешной оплаты
+      cancel_url=f"{domain}/payments/cancel/",  # URL для отмены оплаты
    )
