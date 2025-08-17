@@ -25,6 +25,7 @@ class Lesson(models.Model):
         return self.title
 
 class Subscription(models.Model):
+    objects = None
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     course = models.ForeignKey('Course', on_delete=models.CASCADE)
     subscribed_at = models.DateTimeField(auto_now_add=True)
