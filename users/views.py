@@ -1,11 +1,11 @@
 from rest_framework import viewsets, filters
-from users.models import Payment
 from users.permissions import IsOwnerOrModerator, IsProfileOwner
 from users.serializers import PaymentSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions
 from rest_framework_simplejwt.views import TokenObtainPairView
 from users.serializers import UserSerializer, CustomTokenObtainPairSerializer
+from payments.models import Payment
 
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
