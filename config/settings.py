@@ -45,14 +45,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Third-party apps
     'rest_framework',
+    'drf_yasg',
+    'django_filters',
+    'django_celery_beat',
+
+    # Local apps
     'users',
     'materials',
-    'django_filters',
-    'drf_yasg',
-    'payments'
-    'django_celery_beat',
-    'django_celery_results',
+    'payments',
 ]
 
 MIDDLEWARE = [
