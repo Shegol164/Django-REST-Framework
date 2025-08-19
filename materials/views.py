@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from .models import Subscription
 from .paginators import CoursePaginator, LessonPaginator
 from drf_yasg.utils import swagger_auto_schema
+from materials.tasks import send_course_update_notification
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -33,6 +34,14 @@ class CourseViewSet(viewsets.ModelViewSet):
         if self.request.user.groups.filter(name='moderators').exists():
             return Course.objects.all()
         return Course.objects.filter(owner=self.request.user)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        last_update = instance.updated_at if hasattr(instance, 'updated_at') else None
+
+        # Если курс не обновлялся более 4 часов (доп. задание)
+        if not last_update or (datetime.now() - last_update) > timedelta(hours=4):
+            send_course_update_notification.delay(instance.id)
 
 
 class LessonViewSet(viewsets.ModelViewSet):
