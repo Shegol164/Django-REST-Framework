@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-from _pydatetime import timedelta
+from datetime import timedelta
 from pathlib import Path
 import os
 from dotenv import load_dotenv
