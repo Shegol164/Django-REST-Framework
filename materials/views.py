@@ -15,7 +15,6 @@ from materials.tasks import send_course_update_notification
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     pagination_class = CoursePaginator
-    queryset = Course.objects.all()
     serializer_class = CourseSerializer
 
     def get_permissions(self):
