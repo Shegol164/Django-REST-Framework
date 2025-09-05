@@ -14,18 +14,15 @@ import sys
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
-from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Загрузка переменных окружения
-load_dotenv()
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -173,7 +170,9 @@ SIMPLE_JWT = {
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
 
-# Celery + Redis
+# Celery + Redis - импортируем здесь, после определения всех базовых настроек
+from celery.schedules import crontab
+
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 CELERY_TIMEZONE = 'Europe/Moscow'
@@ -186,13 +185,13 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-# Настройки безопасности только для production
+# Настройки безопасности - только для production
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_SSL_REDIRECT = True
-    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
