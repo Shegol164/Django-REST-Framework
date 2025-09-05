@@ -26,34 +26,18 @@ jobs:
           pip install -r requirements.txt
           pip install coverage
 
-      - name: Create .env file for testing
+      - name: Create .env file for tests
         run: |
-          echo "DEBUG=True" >> .env
+          echo "DEBUG=True" > .env
           echo "SECRET_KEY=test-secret-key-for-ci-cd-$(date +%s)" >> .env
           echo "ALLOWED_HOSTS=localhost,127.0.0.1,testserver" >> .env
-          echo "DB_NAME=test_db" >> .env
-          echo "DB_USER=test_user" >> .env
-          echo "DB_PASSWORD=test_password" >> .env
-          echo "DB_HOST=localhost" >> .env
-          echo "DB_PORT=5432" >> .env
-          echo "CELERY_BROKER_URL=redis://localhost:6379/0" >> .env
-          echo "CELERY_RESULT_BACKEND=redis://localhost:6379/0" >> .env
-          echo "STRIPE_SECRET_KEY=sk_test_dummy" >> .env
-          echo "STRIPE_PUBLIC_KEY=pk_test_dummy" >> .env
+          cat .env
 
       - name: Run migrations
-        env:
-          DEBUG: True
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          TEST_MODE: True  # Добавляем флаг тестового режима
         run: |
           python manage.py migrate
 
       - name: Run tests with coverage
-        env:
-          DEBUG: True
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          TEST_MODE: True  # Добавляем флаг тестового режима
         run: |
           coverage run --source='.' manage.py test
           coverage report -m
