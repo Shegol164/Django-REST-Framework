@@ -9,10 +9,10 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-from datetime import timedelta
-from pathlib import Path
 import os
 import sys
+from pathlib import Path
+from datetime import timedelta
 from dotenv import load_dotenv
 from celery.schedules import crontab
 
@@ -74,7 +74,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [],
-        'APP_DIRS': True,
+        'APP_DIRS: True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
