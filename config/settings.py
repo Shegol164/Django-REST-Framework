@@ -95,7 +95,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 load_dotenv()
 
-if 'test' in sys.argv:
+IS_TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
+
+if IS_TESTING:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
