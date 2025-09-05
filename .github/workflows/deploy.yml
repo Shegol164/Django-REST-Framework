@@ -29,16 +29,20 @@ jobs:
       - name: Run migrations
         env:
           DEBUG: True
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          TEST_MODE: True  # Добавляем эту переменную
+          SECRET_KEY: ${{ secrets.SECRET_KEY || 'django-insecure-test-key-for-ci' }}
+          DB_NAME: test_db
+          DB_USER: test_user
+          DB_PASSWORD: test_password
         run: |
           python manage.py migrate
 
       - name: Run tests with coverage
         env:
           DEBUG: True
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          TEST_MODE: True  # Добавляем эту переменную
+          SECRET_KEY: ${{ secrets.SECRET_KEY || 'django-insecure-test-key-for-ci' }}
+          DB_NAME: test_db
+          DB_USER: test_user
+          DB_PASSWORD: test_password
         run: |
           coverage run --source='.' manage.py test
           coverage report -m
