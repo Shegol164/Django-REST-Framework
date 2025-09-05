@@ -42,10 +42,18 @@ jobs:
           echo "STRIPE_PUBLIC_KEY=pk_test_dummy" >> .env
 
       - name: Run migrations
+        env:
+          DEBUG: True
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          TEST_MODE: True  # Добавляем флаг тестового режима
         run: |
           python manage.py migrate
 
       - name: Run tests with coverage
+        env:
+          DEBUG: True
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          TEST_MODE: True  # Добавляем флаг тестового режима
         run: |
           coverage run --source='.' manage.py test
           coverage report -m

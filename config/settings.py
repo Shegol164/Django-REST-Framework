@@ -84,10 +84,21 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Правильная проверка тестового режима
-IS_TESTING = any('test' in arg for arg in sys.argv)
+# Надежная проверка тестового режима
+def is_testing():
+    # Проверяем аргументы командной строки
+    if len(sys.argv) > 1 and sys.argv[1] == 'test':
+        return True
+    # Проверяем наличие 'test' в любом аргументе
+    if any('test' in arg for arg in sys.argv):
+        return True
+    # Проверяем переменные окружения (для CI/CD)
+    if os.environ.get('TEST_MODE') == 'True':
+        return True
+    return False
 
-if IS_TESTING:
+if is_testing():
+    print("🚀 Using SQLite for testing")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -95,13 +106,14 @@ if IS_TESTING:
         }
     }
 else:
+    print("📦 Using PostgreSQL for production")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME'),
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST', 'db'),
+            'NAME': os.getenv('DB_NAME', 'django_db'),
+            'USER': os.getenv('DB_USER', 'django_user'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'password'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
             'PORT': os.getenv('DB_PORT', '5432'),
             'OPTIONS': {
                 'connect_timeout': 5,
