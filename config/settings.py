@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 import os
+import sys
 from dotenv import load_dotenv
 from django.contrib.staticfiles.storage import staticfiles_storage
 from celery.schedules import crontab
