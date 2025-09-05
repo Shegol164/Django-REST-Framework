@@ -186,7 +186,7 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-# Настройки безопасности для production
+# Настройки безопасности только для production
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
