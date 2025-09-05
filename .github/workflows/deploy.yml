@@ -30,6 +30,7 @@ jobs:
         env:
           DEBUG: True
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          GITHUB_ACTIONS: true  # Добавляем эту переменную
         run: |
           python manage.py migrate
 
@@ -37,6 +38,7 @@ jobs:
         env:
           DEBUG: True
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          GITHUB_ACTIONS: true  # Добавляем эту переменную
         run: |
           coverage run --source='.' manage.py test
           coverage report -m

@@ -92,11 +92,10 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Простая и надежная проверка тестового режима
 
-IS_TESTING = 'test' in sys.argv
 
-if IS_TESTING:
+# Всегда используем SQLite для тестов и CI/CD окружения
+if any('test' in arg for arg in sys.argv) or os.getenv('CI') or os.getenv('GITHUB_ACTIONS'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -117,7 +116,6 @@ else:
             },
         }
     }
-
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
