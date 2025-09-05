@@ -90,10 +90,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Проверка тестового режима
+IS_GITHUB_ACTIONS = os.getenv('GITHUB_ACTIONS') == 'true'
 IS_TESTING = any('test' in arg for arg in sys.argv)
 
-if IS_TESTING:
+if IS_TESTING or IS_GITHUB_ACTIONS:
+    # Используем SQLite для тестов и GitHub Actions
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -101,13 +102,14 @@ if IS_TESTING:
         }
     }
 else:
+    # Используем PostgreSQL для продакшена
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.getenv('DB_NAME'),
             'USER': os.getenv('DB_USER'),
             'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST', 'db'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
             'PORT': os.getenv('DB_PORT', '5432'),
             'OPTIONS': {
                 'connect_timeout': 5,
