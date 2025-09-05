@@ -9,32 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    services:
-      postgres:
-        image: postgres:13
-        env:
-          POSTGRES_DB: test_db
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
+    timeout-minutes: 15
 
     steps:
       - name: Checkout code
@@ -55,12 +30,6 @@ jobs:
         env:
           DEBUG: True
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          DB_NAME: test_db
-          DB_USER: test_user
-          DB_PASSWORD: test_password
-          DB_HOST: localhost
-          DB_PORT: 5432
-          CELERY_BROKER_URL: redis://localhost:6379/0
         run: |
           python manage.py migrate
 
@@ -68,15 +37,10 @@ jobs:
         env:
           DEBUG: True
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          DB_NAME: test_db
-          DB_USER: test_user
-          DB_PASSWORD: test_password
-          DB_HOST: localhost
-          DB_PORT: 5432
-          CELERY_BROKER_URL: redis://localhost:6379/0
         run: |
           coverage run --source='.' manage.py test
           coverage report -m
+          coverage xml
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
