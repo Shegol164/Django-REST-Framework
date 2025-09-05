@@ -92,10 +92,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-
-
-# Всегда используем SQLite для тестов и CI/CD окружения
-if any('test' in arg for arg in sys.argv) or os.getenv('CI') or os.getenv('GITHUB_ACTIONS'):
+if 'test' in sys.argv:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
