@@ -51,25 +51,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check if secrets are configured
-        id: check-secrets
-        run: |
-          if [ -z "${{ secrets.SERVER_SSH_KEY }}" ]; then
-            echo "SSH key secret is not configured"
-            echo "skip_deploy=true" >> $GITHUB_OUTPUT
-          else
-            echo "SSH key secret is configured"
-            echo "skip_deploy=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Setup SSH
-        if: steps.check-secrets.outputs.skip_deploy == 'false'
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
       - name: Deploy to production server
-        if: steps.check-secrets.outputs.skip_deploy == 'false'
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
@@ -92,12 +79,3 @@ jobs:
             sudo systemctl restart nginx
             echo "Deployment completed successfully!"
           EOF
-
-      - name: Skip deployment (secrets not configured)
-        if: steps.check-secrets.outputs.skip_deploy == 'true'
-        run: |
-          echo "Skipping deployment because SSH secrets are not configured"
-          echo "To enable deployment, configure the following secrets in GitHub:"
-          echo "- SERVER_SSH_KEY: Your private SSH key"
-          echo "- SERVER_HOST: Server IP/hostname"
-          echo "- SERVER_USER: SSH username"
