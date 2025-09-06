@@ -43,7 +43,7 @@ jobs:
     needs: test
 
     steps:
-      - name: Set up SSH
+      - name: Checkout code
         uses: actions/checkout@v4
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
