@@ -46,6 +46,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: test
+    # Пропускаем job если секреты не настроены
+    if: always() && needs.test.result == 'success' && secrets.SERVER_SSH_KEY != ''
 
     steps:
       - name: Checkout code
