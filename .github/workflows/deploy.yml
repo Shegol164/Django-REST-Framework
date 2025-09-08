@@ -1,4 +1,4 @@
-wname: Deploy Django App
+name: Deploy Django App
 on:
   push:
     branches: [main, develop]
