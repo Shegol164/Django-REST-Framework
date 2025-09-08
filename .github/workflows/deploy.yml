@@ -38,37 +38,30 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
-deploy:
+  deploy:
     runs-on: ubuntu-latest
     needs: test
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-
-      - name: Debug deployment
+      - name: Deploy to production server
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
-          echo "=== Debug Information ==="
-          echo "SERVER_USER: ${SERVER_USER}"
-          echo "SERVER_HOST: ${SERVER_HOST}"
-          echo "========================="
-          
-          # Простая проверка подключения
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 ${SERVER_USER}@${SERVER_HOST} "
-            echo '✅ Successfully connected to server!'
-            echo 'Current user: $(whoami)'
-            echo 'Working directory: $(pwd)'
-            echo 'Home directory: $HOME'
-            echo 'Available commands:'
-            which git || echo 'git: not found'
-            which python3 || echo 'python3: not found'
-            which pip || echo 'pip: not found'
-          "
+          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} << 'EOF'
+            cd /home/django_app/Django_REST_Framework
+            git pull origin main
+            source venv/bin/activate
+            pip install -r requirements.txt
+            python manage.py migrate
+            python manage.py collectstatic --noinput
+            sudo systemctl restart gunicorn
+            sudo systemctl restart nginx
+            echo "Deployment completed successfully!"
+          EOF
