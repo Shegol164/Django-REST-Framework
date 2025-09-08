@@ -1,40 +1,36 @@
 name: Deploy Django App
-
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
-
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install coverage
-
+      - name: Create .env file for tests
+        run: |
+          echo "DEBUG=True" > .env
+          echo "SECRET_KEY=test-secret-key-for-ci-cd-$(date +%s)" >> .env
+          echo "ALLOWED_HOSTS=localhost,127.0.0.1,testserver" >> .env
+          cat .env
       - name: Run tests with coverage
-        env:
-          DEBUG: True
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
         run: |
           coverage run --source='.' manage.py test
           coverage report -m
           coverage xml
-
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
         with:
@@ -42,7 +38,6 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
-
   deploy:
     runs-on: ubuntu-latest
     needs: test
@@ -50,91 +45,23 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-
-      - name: Test SSH connection
+      - name: Deploy to production server
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
-          echo "Testing SSH connection to ${SERVER_USER}@${SERVER_HOST}"
-          
-          # Проверяем что хост доступен
-          if ping -c 1 ${SERVER_HOST} &> /dev/null; then
-            echo "✅ Host ${SERVER_HOST} is reachable"
-          else
-            echo "❌ Host ${SERVER_HOST} is not reachable"
-            echo "Please check:"
-            echo "1. Правильный ли IP адрес в secrets.SERVER_HOST"
-            echo "2. Открыт ли порт 22 на сервере"
-            echo "3. Работает ли SSH сервер"
-            exit 1
-          fi
-          
-          # Проверяем SSH подключение
-          if ssh -o BatchMode=yes -o ConnectTimeout=5 ${SERVER_USER}@${SERVER_HOST} "echo 'SSH connection successful'"; then
-            echo "✅ SSH connection successful"
-          else
-            echo "❌ SSH connection failed"
-            echo "Please check:"
-            echo "1. Правильный ли пользователь в secrets.SERVER_USER"
-            echo "2. Добавлен ли SSH ключ в authorized_keys на сервере"
-            echo "3. Правильный ли приватный ключ в secrets.SERVER_SSH_KEY"
-            exit 1
-          fi
-
-      - name: Simple deployment verification
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-        run: |
-          echo "Running simple deployment verification..."
-          
-          # Простая команда для проверки работы
-          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} "
-            echo '=== Server Information ==='
-            echo 'Hostname: $(hostname)'
-            echo 'IP address: $(hostname -I)'
-            echo 'Uptime: $(uptime)'
-            echo 'Python: $(python3 --version 2>/dev/null || echo \"Not installed\")'
-            echo 'Git: $(git --version 2>/dev/null || echo \"Not installed\")'
-            echo '=========================='
-          "
-          
-          echo "✅ Deployment verification completed successfully!"
-
-      - name: Create deployment marker
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-        run: |
-          echo "Creating deployment marker..."
-          
-          # Создаем файл-маркер успешного деплоя
-          ssh ${SERVER_USER}@${SERVER_HOST} "
-            DEPLOY_DIR=\"/home/\$(whoami)/deployments\"
-            mkdir -p \$DEPLOY_DIR
-            echo 'Deployment successful at $(date)' > \$DEPLOY_DIR/deployment_${{ github.run_id }}.txt
-            echo 'Commit: ${{ github.sha }}' >> \$DEPLOY_DIR/deployment_${{ github.run_id }}.txt
-            echo 'Branch: ${{ github.ref }}' >> \$DEPLOY_DIR/deployment_${{ github.run_id }}.txt
-            echo 'Created deployment marker: \$DEPLOY_DIR/deployment_${{ github.run_id }}.txt'
-          "
-
-      - name: Final success message
-        run: |
-          echo "🎉 All deployment steps completed successfully!"
-          echo "📋 Summary:"
-          echo "  - Tests passed ✅"
-          echo "  - SSH connection working ✅" 
-          echo "  - Server verification completed ✅"
-          echo "  - Deployment marker created ✅"
-          echo ""
-          echo "Next steps for full deployment:"
-          echo "1. Установить Python и зависимости на сервере"
-          echo "2. Настроить базу данных PostgreSQL"
-          echo "3. Настроить Nginx + Gunicorn"
-          echo "4. Настроить доменное имя"
+          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} << 'EOF'
+            cd /home/django_app/Django_REST_Framework
+            git pull origin main
+            source venv/bin/activate
+            pip install -r requirements.txt
+            python manage.py migrate
+            python manage.py collectstatic --noinput
+            sudo systemctl restart gunicorn
+            sudo systemctl restart nginx
+            echo "Deployment completed successfully!"
+          EOF
