@@ -1,40 +1,36 @@
 name: Deploy Django App
-
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
-
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install coverage
-
+      - name: Create .env file for tests
+        run: |
+          echo "DEBUG=True" > .env
+          echo "SECRET_KEY=test-secret-key-for-ci-cd-$(date +%s)" >> .env
+          echo "ALLOWED_HOSTS=localhost,127.0.0.1,testserver" >> .env
+          cat .env
       - name: Run tests with coverage
-        env:
-          DEBUG: True
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
         run: |
           coverage run --source='.' manage.py test
           coverage report -m
           coverage xml
-
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
         with:
@@ -42,7 +38,6 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
-
   deploy:
     runs-on: ubuntu-latest
     needs: test
@@ -50,32 +45,23 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-
-      - name: Test SSH connection
+      - name: Deploy to production server
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
-          echo "Testing SSH connection to ${SERVER_USER}@${SERVER_HOST}"
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${SERVER_USER}@${SERVER_HOST} "echo '✅ SSH connection successful!'"
-
-      - name: Verify deployment
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-        run: |
-          echo "🔍 Verifying deployment..."
-          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} << 'VERIFY_EOF'
+          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} << 'EOF'
             cd /home/django_app/Django_REST_Framework
+            git pull origin main
             source venv/bin/activate
-            echo "✅ Checking Django version..."
-            python -m django --version
-            echo "✅ Checking if migrations are applied..."
-            python manage.py check
-            echo "✅ Deployment verification completed!"
-          VERIFY_EOF
+            pip install -r requirements.txt
+            python manage.py migrate
+            python manage.py collectstatic --noinput
+            sudo systemctl restart gunicorn
+            sudo systemctl restart nginx
+            echo "Deployment completed successfully!"
+          EOF
