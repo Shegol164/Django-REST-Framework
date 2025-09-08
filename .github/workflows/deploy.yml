@@ -45,23 +45,25 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-      - name: Deploy to production server
+
+      - name: Simple deployment test
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} << 'EOF'
-            cd /home/django_app/Django_REST_Framework
-            git pull origin main
-            source venv/bin/activate
-            pip install -r requirements.txt
-            python manage.py migrate
-            python manage.py collectstatic --noinput
-            sudo systemctl restart gunicorn
-            sudo systemctl restart nginx
-            echo "Deployment completed successfully!"
-          EOF
+          echo "🧪 Testing deployment connection..."
+
+          # Простая проверка что мы можем подключиться и выполнить команду
+          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} "
+            echo '✅ Successfully connected to server!'
+            echo 'Hostname: $(hostname)'
+            echo 'Uptime: $(uptime)'
+            echo 'Python version: $(python3 --version 2>/dev/null || echo \"Python not installed\")'
+          "
+
+          echo "🎉 Basic deployment test passed!"
