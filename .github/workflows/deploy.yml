@@ -1,4 +1,4 @@
-name: Deploy Django App
+wname: Deploy Django App
 on:
   push:
     branches: [main, develop]
@@ -54,13 +54,65 @@ jobs:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
+          echo "Starting deployment to ${SERVER_HOST}"
           ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} << 'EOF'
+            echo "Checking and setting up deployment environment..."
+
+            # Проверяем и создаем директорию если нужно
+            if [ ! -d "/home/django_app/Django_REST_Framework" ]; then
+              echo "Creating project directory..."
+              sudo mkdir -p /home/django_app/Django_REST_Framework
+              sudo chown ${SERVER_USER}:${SERVER_USER} /home/django_app/Django_REST_Framework
+            fi
+
             cd /home/django_app/Django_REST_Framework
-            git pull origin main
+
+            # Клонируем репозиторий если его нет
+            if [ ! -d ".git" ]; then
+              echo "Cloning repository..."
+              git clone https://github.com/${{ github.repository }} ./
+            else
+              echo "Pulling latest changes from main branch..."
+              git pull origin main
+            fi
+
+            # Создаем виртуальное окружение если нужно
+            if [ ! -d "venv" ]; then
+              echo "Creating virtual environment..."
+              python3 -m venv venv
+            fi
+
+            echo "Activating virtual environment..."
             source venv/bin/activate
+
+            echo "Installing dependencies..."
+            pip install --upgrade pip
             pip install -r requirements.txt
+
+            echo "Applying migrations..."
+            python manage.py migrate
+
+            echo "Collecting static files..."
             python manage.py collectstatic --noinput
-            sudo systemctl restart gunicorn
-            sudo systemctl restart nginx
+
+            echo "Checking and setting up services..."
+
+            # Проверяем и создаем службу Gunicorn если нужно
+            if [ ! -f "/etc/systemd/system/gunicorn.service" ]; then
+              echo "Gunicorn service not found, please set it up manually first"
+            else
+              echo "Restarting Gunicorn..."
+              sudo systemctl daemon-reload
+              sudo systemctl restart gunicorn
+            fi
+
+            # Проверяем и перезапускаем Nginx
+            if command -v nginx &> /dev/null; then
+              echo "Restarting Nginx..."
+              sudo systemctl restart nginx
+            else
+              echo "Nginx not found, please install it first"
+            fi
+
             echo "Deployment completed successfully!"
           EOF
