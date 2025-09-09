@@ -32,7 +32,7 @@ class LessonCRUDTestCase(APITestCase):
 
     def test_lesson_create(self):
         self.client.force_authenticate(user=self.user)
-        url = reverse('materials:lesson-list')  # Используем namespaced URL
+        url = reverse('materials:lesson-list')  # Используем именованный URL
         data = {
             'title': 'New Lesson',
             'description': 'New Description',
@@ -44,7 +44,7 @@ class LessonCRUDTestCase(APITestCase):
 
     def test_lesson_update(self):
         self.client.force_authenticate(user=self.user)
-        url = reverse('materials:lesson-detail', args=[self.lesson.id])  # Namespaced URL
+        url = reverse('materials:lesson-detail', args=[self.lesson.id])  # Используем именованный URL
         data = {'title': 'Updated Lesson'}
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -83,7 +83,7 @@ class SubscriptionTestCase(APITestCase):
             title='Test Course',
             description='Test Description'
         )
-        self.url = reverse('materials:subscriptions')  # Namespaced URL
+        self.url = reverse('materials:subscriptions')  # Используем именованный URL
 
     def test_subscribe(self):
         self.client.force_authenticate(user=self.user)
