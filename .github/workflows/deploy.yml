@@ -56,5 +56,5 @@ jobs:
 
       - name: Copy project files to server
         run: |
-          rsync -avz --exclude '__pycache__' . ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.DEPLOY_DIR }}
+          rsync -avz --exclude '__pycache__' . ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}
           EOF
