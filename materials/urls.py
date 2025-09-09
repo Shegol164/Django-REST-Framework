@@ -9,6 +9,7 @@ router.register(r'lessons', LessonViewSet, basename='lesson')
 app_name = 'materials'
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('subscriptions/', SubscriptionAPIView.as_view(), name='subscriptions')
+    path('lessons/', LessonViewSet.as_view({'get': 'list', 'post': 'create'}), name='lesson-list'),
+    path('lessons/<int:pk>/', LessonViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='lesson-detail'),
+    path('subscriptions/', SubscriptionAPIView.as_view(), name='subscriptions'),
 ]
