@@ -1,36 +1,40 @@
 name: Deploy Django App
+
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 1
+    timeout-minutes: 15
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install coverage
-      - name: Create .env file for tests
-        run: |
-          echo "DEBUG=True" > .env
-          echo "SECRET_KEY=test-secret-key-for-ci-cd-$(date +%s)" >> .env
-          echo "ALLOWED_HOSTS=localhost,127.0.0.1,testserver" >> .env
-          cat .env
+
       - name: Run tests with coverage
+        env:
+          DEBUG: True
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
         run: |
           coverage run --source='.' manage.py test
           coverage report -m
           coverage xml
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
         with:
@@ -38,81 +42,23 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
+
   deploy:
     runs-on: ubuntu-latest
     needs: test
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup SSH
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-      - name: Deploy to production server
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
+
+      - name: Adding Known Hosts
+        run: ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy project files to server
         run: |
-          echo "Starting deployment to ${SERVER_HOST}"
-          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} << 'EOF'
-            echo "Checking and setting up deployment environment..."
-
-            # Проверяем и создаем директорию если нужно
-            if [ ! -d "/home/django_app/Django_REST_Framework" ]; then
-              echo "Creating project directory..."
-              sudo mkdir -p /home/django_app/Django_REST_Framework
-              sudo chown ${SERVER_USER}:${SERVER_USER} /home/django_app/Django_REST_Framework
-            fi
-
-            cd /home/django_app/Django_REST_Framework
-
-            # Клонируем репозиторий если его нет
-            if [ ! -d ".git" ]; then
-              echo "Cloning repository..."
-              git clone https://github.com/${{ github.repository }} ./
-            else
-              echo "Pulling latest changes from main branch..."
-              git pull origin main
-            fi
-
-            # Создаем виртуальное окружение если нужно
-            if [ ! -d "venv" ]; then
-              echo "Creating virtual environment..."
-              python3 -m venv venv
-            fi
-
-            echo "Activating virtual environment..."
-            source venv/bin/activate
-
-            echo "Installing dependencies..."
-            pip install --upgrade pip
-            pip install -r requirements.txt
-
-            echo "Applying migrations..."
-            python manage.py migrate
-
-            echo "Collecting static files..."
-            python manage.py collectstatic --noinput
-
-            echo "Checking and setting up services..."
-
-            # Проверяем и создаем службу Gunicorn если нужно
-            if [ ! -f "/etc/systemd/system/gunicorn.service" ]; then
-              echo "Gunicorn service not found, please set it up manually first"
-            else
-              echo "Restarting Gunicorn..."
-              sudo systemctl daemon-reload
-              sudo systemctl restart gunicorn
-            fi
-
-            # Проверяем и перезапускаем Nginx
-            if command -v nginx &> /dev/null; then
-              echo "Restarting Nginx..."
-              sudo systemctl restart nginx
-            else
-              echo "Nginx not found, please install it first"
-            fi
-
-            echo "Deployment completed successfully!"
-          EOF
+          rsync -avz --exclude '__pycache__' --exclude '.git' --exclude '.env' --exclude 'venv' . ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}
