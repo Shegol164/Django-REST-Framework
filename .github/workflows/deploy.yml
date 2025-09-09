@@ -92,16 +92,5 @@ jobs:
             source venv/bin/activate
             pip install --upgrade pip
             pip install -r requirements.txt
-            
-            # Применяем миграции
-            python manage.py migrate
-            
-            # Собираем статические файлы
-            python manage.py collectstatic --noinput
-            
-            # Перезапускаем сервисы
-            sudo systemctl restart gunicorn || echo "Gunicorn service not found, continuing..."
-            sudo systemctl restart nginx || echo "Nginx service not found, continuing..."
-            
             echo "🚀 Deployment completed successfully!"
           EOF
