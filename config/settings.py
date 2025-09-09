@@ -124,13 +124,16 @@ else:
     }
 
 # Если используете DEBUG=False, добавьте:
-if not DEBUG:
+if not DEBUG and not IS_TESTING:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
 else:
-    # Для разработки можно добавить дополнительные настройки
-    pass
+    # Для разработки и тестов отключаем HTTPS
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

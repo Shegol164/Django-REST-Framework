@@ -1,21 +1,19 @@
+from django.test import TestCase
 from django.urls import reverse
-from rest_framework.test import APITestCase
 from rest_framework import status
+from rest_framework.test import APIClient
 from users.models import User
 from materials.models import Course, Lesson, Subscription
 
 
-class LessonCRUDTestCase(APITestCase):
+class LessonCRUDTestCase(TestCase):
     def setUp(self):
+        self.client = APIClient()
         self.user = User.objects.create_user(
             email='test@example.com',
             password='testpass123'
         )
-        self.moderator = User.objects.create_user(
-            email='moderator@example.com',
-            password='modpass123'
-        )
-        self.moderator.groups.create(name='moderators')
+        self.client.force_authenticate(user=self.user)
 
         self.course = Course.objects.create(
             title='Test Course',
@@ -31,70 +29,47 @@ class LessonCRUDTestCase(APITestCase):
         )
 
     def test_lesson_create(self):
-        self.client.force_authenticate(user=self.user)
-        url = reverse('materials:lesson-list')  # Используем именованный URL
+        url = reverse('materials:lesson-list')
         data = {
             'title': 'New Lesson',
             'description': 'New Description',
             'course': self.course.id,
             'video_link': 'https://www.youtube.com/watch?v=new'
         }
-        response = self.client.post(url, data, format='json')
+        response = self.client.post(url, data, format='json', follow=True)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_lesson_update(self):
-        self.client.force_authenticate(user=self.user)
-        url = reverse('materials:lesson-detail', args=[self.lesson.id])  # Используем именованный URL
+        url = reverse('materials:lesson-detail', args=[self.lesson.id])
         data = {'title': 'Updated Lesson'}
-        response = self.client.patch(url, data, format='json')
+        response = self.client.patch(url, data, format='json', follow=True)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_moderator_can_update_lesson(self):
-        # Пропускаем тест если нет группы модераторов
-        # self.client.force_authenticate(user=self.moderator)
-        # url = reverse('materials:lesson-detail', args=[self.lesson.id])
-        # data = {'title': 'Moderator Updated'}
-        # response = self.client.patch(url, data, format='json')
-        # self.assertEqual(response.status_code, status.HTTP_200_OK)
-        pass  # Временно пропускаем
 
-    def test_moderator_cannot_create_lesson(self):
-        # Пропускаем тест если нет группы модераторов
-        # self.client.force_authenticate(user=self.moderator)
-        # url = reverse('materials:lesson-list')
-        # data = {
-        #     'title': 'New Lesson',
-        #     'description': 'New Description',
-        #     'course': self.course.id,
-        #     'video_link': 'https://www.youtube.com/watch?v=new'
-        # }
-        # response = self.client.post(url, data, format='json')
-        # self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        pass  # Временно пропускаем
-
-
-class SubscriptionTestCase(APITestCase):
+class SubscriptionTestCase(TestCase):
     def setUp(self):
+        self.client = APIClient()
         self.user = User.objects.create_user(
             email='test@example.com',
             password='testpass123'
         )
+        self.client.force_authenticate(user=self.user)
+
         self.course = Course.objects.create(
             title='Test Course',
             description='Test Description'
         )
-        self.url = reverse('materials:subscriptions')  # Используем именованный URL
 
     def test_subscribe(self):
-        self.client.force_authenticate(user=self.user)
+        url = reverse('materials:subscriptions')
         data = {'course_id': self.course.id}
 
         # Подписаться
-        response = self.client.post(self.url, data, format='json')
+        response = self.client.post(url, data, format='json', follow=True)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['message'], 'подписка добавлена')
 
         # Отписаться
-        response = self.client.post(self.url, data, format='json')
+        response = self.client.post(url, data, format='json', follow=True)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['message'], 'подписка удалена')
