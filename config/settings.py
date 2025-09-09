@@ -97,8 +97,10 @@ def is_testing():
         return True
     return False
 
-if is_testing():
-    print("🚀 Using SQLite for testing")
+IS_TESTING = any('test' in arg for arg in sys.argv) or os.getenv('GITHUB_ACTIONS') == 'true'
+
+if IS_TESTING:
+    print("🧪 Test environment detected - using SQLite")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -106,20 +108,29 @@ if is_testing():
         }
     }
 else:
-    print("📦 Using PostgreSQL for production")
+    print("🚀 Production environment - using PostgreSQL")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'django_db'),
-            'USER': os.getenv('DB_USER', 'django_user'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'password'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'NAME': os.getenv('DB_NAME'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST', 'db'),
             'PORT': os.getenv('DB_PORT', '5432'),
             'OPTIONS': {
                 'connect_timeout': 5,
             },
         }
     }
+
+# Если используете DEBUG=False, добавьте:
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+else:
+    # Для разработки можно добавить дополнительные настройки
+    pass
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -209,16 +220,3 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = 'DENY'
-
-if IS_TESTING:
-    print("🧪 Test environment detected - using SQLite")
-    # Отключаем все security настройки для тестов
-    SESSION_COOKIE_SECURE = False
-    CSRF_COOKIE_SECURE = False
-    SECURE_SSL_REDIRECT = False
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'test_db.sqlite3',
-        }
-    }
