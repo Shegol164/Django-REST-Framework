@@ -44,25 +44,18 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup SSH
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
-          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-      - name: Deploy to production server
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY}}
+
+      - name: Adding Known Hosts
+        run: ssh-keyscan -H ${{secrets.SERVER_HOST}} >> ~/.ssh/known_hosts
+
+      - name: Copy project files to server
         run: |
-          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} << 'EOF'
-            cd /home/django_app/Django_REST_Framework
-            git pull origin main
-            source venv/bin/activate
-            pip install -r requirements.txt
-            python manage.py migrate
-            python manage.py collectstatic --noinput
-            sudo systemctl restart gunicorn
-            sudo systemctl restart nginx
-            echo "Deployment completed successfully!"
+          rsync -avz --exclude '__pycache__' . ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.DEPLOY_DIR }}
           EOF
