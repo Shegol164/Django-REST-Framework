@@ -65,16 +65,5 @@ jobs:
 
       - name: Copy project files to server
         run: |
-          rsync -avz --delete \
-          --exclude '__pycache__' \
-          --exclude '.git' \
-          --exclude '.env' \
-          --exclude 'venv' \
-          --exclude '.vscode' \
-          --exclude '.idea' \
-          --exclude '*.sqlite3' \
-          --exclude 'staticfiles' \
-          --exclude 'media' \
-          -e "ssh -o StrictHostKeyChecking=no" \
-          ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.DEPLOY_DIR }}/
+          rsync -avz --exclude '__pycache__' . ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ secrets.DEPLOY_DIR }}
           EOF
