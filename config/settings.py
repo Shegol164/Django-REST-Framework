@@ -97,7 +97,15 @@ def is_testing():
         return True
     return False
 
-IS_TESTING = any('test' in arg for arg in sys.argv) or os.getenv('GITHUB_ACTIONS') == 'true'
+IS_TESTING = any('test' in arg for arg in sys.argv)
+
+if IS_TESTING:
+    # Отключаем все security настройки для тестов
+    DEBUG = True
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_PROXY_SSL_HEADER = None
 
 if IS_TESTING:
     print("🧪 Test environment detected - using SQLite")
