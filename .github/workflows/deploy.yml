@@ -1,67 +1,81 @@
 name: Deploy Django App
 
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+on: [push, pull_request]
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.9
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install flake8
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install coverage
+          pip install flake8
 
-      - name: Create .env file for tests
-        run: |
-          echo "DEBUG=True" > .env
-          echo "SECRET_KEY=test-secret-key-for-ci-cd-$(date +%s)" >> .env
-          echo "ALLOWED_HOSTS=localhost,127.0.0.1,testserver" >> .env
-          cat .env
+      - name: Run flake8
+        run: flake8
 
-      - name: Run tests with coverage
-        run: |
-          coverage run --source='.' manage.py test
-          coverage report -m
-          coverage xml
+    test:
+      need: lint
+      runs-on: ubuntu-latest
 
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
+        - name: Set up Python 3.10
+          uses: actions/setup-python@v4
+          with:
+            python-version: '3.10'
 
-    steps:
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.SERVER_SSH_KEY}}
+        - name: Install dependencies
+          run: |
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
 
-      - name: Deploy to Server
-        run: |
-          ssh -o StrictHostKeyChecking=no -vT ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST}} << 'EOF'
-            sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
-            sudo docker stop myapp || true
-            sudo docker rm myapp || true
-            sudo docker run -d --name myapp -p 80:8000 ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
-          EOF
+        - name: Run tests
+          run: python manage.py test
+
+    build:
+      needs: test
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Check out code
+          uses: actions/checkout@v4
+
+        - name: Log in to Docker Hub
+          run: echo ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
+
+        - name: Build Docker image
+          run: docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }} .
+
+        - name: Push Docker image to Docker Hub
+          run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+
+      deploy:
+        needs: build
+        runs-on: ubuntu-latest
+
+        steps:
+          - name: Set up SSH
+            uses: webfactory/ssh-agent@v0.8.0
+            with:
+              ssh-private-key: ${{ secrets.SERVER_SSH_KEY}}
+
+          - name: Deploy to Server
+            run: |
+              ssh -o StrictHostKeyChecking=no -vT ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST}} << 'EOF'
+                sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+                sudo docker stop myapp || true
+                sudo docker rm myapp || true
+                sudo docker run -d --name myapp -p 80:8000 ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+              EOF
