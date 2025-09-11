@@ -45,7 +45,7 @@ jobs:
       - name: Push Docker image to Docker Hub
         run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
 
-  deploy:  # Этот job должен быть на том же уровне, что и test и build
+  deploy:
     needs: build
     runs-on: ubuntu-latest
 
