@@ -64,12 +64,20 @@ jobs:
               echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
               sudo apt-get update
               sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-              sudo usermod -aG docker $USER
             fi
             
-            # Запускаем контейнер
-            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
-            docker stop myapp || true
-            docker rm myapp || true
-            docker run -d --name myapp -p 80:8000 ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+            # Добавляем пользователя в группу docker
+            sudo usermod -aG docker $USER
+            
+            # Перезапускаем docker сервис
+            sudo systemctl restart docker
+            
+            # Ждем немного, чтобы сервис запустился
+            sleep 5
+            
+            # Запускаем контейнер с sudo (временно, пока сессия не обновлена)
+            sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+            sudo docker stop myapp || true
+            sudo docker rm myapp || true
+            sudo docker run -d --name myapp -p 80:8000 ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
           EOF
