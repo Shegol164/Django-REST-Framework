@@ -45,21 +45,21 @@ jobs:
       - name: Push Docker image to Docker Hub
         run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
 
-    deploy:
-      needs: build
-      runs-on: ubuntu-latest
+  deploy:  # Этот job должен быть на том же уровне, что и test и build
+    needs: build
+    runs-on: ubuntu-latest
 
-      steps:
-        - name: Set up SSH
-          uses: webfactory/ssh-agent@v0.8.0
-          with:
-            ssh-private-key: ${{ secrets.SERVER_SSH_KEY}}
+    steps:
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
-        - name: Deploy to Server
-          run: |
-            ssh -o StrictHostKeyChecking=no -vT ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST}} << 'EOF'
-              sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
-              sudo docker stop myapp || true
-              sudo docker rm myapp || true
-              sudo docker run -d --name myapp -p 80:8000 ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
-            EOF
+      - name: Deploy to Server
+        run: |
+          ssh -o StrictHostKeyChecking=no -vT ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+            sudo docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+            sudo docker stop myapp || true
+            sudo docker rm myapp || true
+            sudo docker run -d --name myapp -p 80:8000 ${{ secrets.DOCKER_HUB_USERNAME }}/myapp:${{ github.sha }}
+          EOF
