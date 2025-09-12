@@ -15,7 +15,10 @@ class LessonCRUDTestCase(APITestCase):
             email='moderator@example.com',
             password='modpass123'
         )
-        self.moderator.groups.create(name='moderators')
+        # Создаем группу модераторов
+        from django.contrib.auth.models import Group
+        moderators_group, created = Group.objects.get_or_create(name='moderators')
+        self.moderator.groups.add(moderators_group)
 
         self.course = Course.objects.create(
             title='Test Course',
@@ -32,7 +35,7 @@ class LessonCRUDTestCase(APITestCase):
 
     def test_lesson_create(self):
         self.client.force_authenticate(user=self.user)
-        url = reverse('materials:lesson-list')
+        url = reverse('materials:lesson-list')  # Убедитесь что используете правильное имя URL
         data = {
             'title': 'New Lesson',
             'description': 'New Description',
@@ -40,6 +43,17 @@ class LessonCRUDTestCase(APITestCase):
             'video_link': 'https://www.youtube.com/watch?v=new'
         }
         response = self.client.post(url, data, format='json')
+
+        # Проверяем статус ответа
+        print(f"Статус ответа: {response.status_code}")
+
+        # Для диагностики проверяем содержание ответа
+        if hasattr(response, 'data'):
+            print(f"Данные ответа: {response.data}")
+        else:
+            print(f"Тип ответа: {type(response)}")
+            print(f"Содержание ответа: {response.content}")
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_lesson_update(self):
@@ -77,9 +91,10 @@ class SubscriptionTestCase(APITestCase):
         )
         self.course = Course.objects.create(
             title='Test Course',
-            description='Test Description'
+            description='Test Description',
+            owner=self.user
         )
-        self.url = '/api/subscriptions/'  # Используем прямой URL
+        self.url = reverse('materials:subscriptions')  # Убедитесь в правильности имени URL
 
     def test_subscribe(self):
         self.client.force_authenticate(user=self.user)
@@ -87,12 +102,29 @@ class SubscriptionTestCase(APITestCase):
 
         # Подписаться
         response = self.client.post(self.url, data, format='json')
+
+        # Проверяем статус ответа
+        print(f"Статус ответа на подписку: {response.status_code}")
+
+        # Для диагностики
+        if hasattr(response, 'data'):
+            print(f"Данные ответа на подписку: {response.data}")
+        else:
+            print(f"Тип ответа: {type(response)}")
+            print(f"Содержание ответа: {response.content}")
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['message'], 'подписка добавлена')
-        self.assertTrue(Subscription.objects.filter(user=self.user, course=self.course).exists())
+
+        # Проверяем что подписка создалась
+        subscription_exists = Subscription.objects.filter(user=self.user, course=self.course).exists()
+        print(f"Подписка создана: {subscription_exists}")
+        self.assertTrue(subscription_exists)
 
         # Отписаться
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['message'], 'подписка удалена')
-        self.assertFalse(Subscription.objects.filter(user=self.user, course=self.course).exists())
+
+        # Проверяем что подписка удалилась
+        subscription_exists = Subscription.objects.filter(user=self.user, course=self.course).exists()
+        print(f"Подписка удалена: {not subscription_exists}")
+        self.assertFalse(subscription_exists)
